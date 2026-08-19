@@ -1,96 +1,139 @@
 const http = require("node:http");
-const { audioResponse } = require("./alice");
-const { STATIONS } = require("./stations");
 
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || "0.0.0.0";
 
-const ROUTES = Object.freeze({
-  "/skills/surprise": "surprise",
-  "/skills/stvol": "stvol",
-  "/skills/oto": "oto",
-  "/skills/kurs": "kurs",
-  "/skills/private-persons": "private-persons",
+// URL: /skills/<key>
+// say: what Alice says before playback
+// url: direct HTTPS audio stream URL
+const SKILLS = Object.freeze({
+  surprise: {
+    say: "Включаю Surprise.fm",
+    url: "https://replace-me.invalid/surprise-fm",
+  },
+  stvol: {
+    say: "Включаю STVOL FM",
+    url: "https://replace-me.invalid/stvol-fm",
+  },
+  oto: {
+    say: "Включаю OTO Radio",
+    url: "https://replace-me.invalid/oto-radio",
+  },
+  kurs: {
+    say: "Включаю KURS Radio",
+    url: "https://replace-me.invalid/kurs-radio",
+  },
+  "private-persons": {
+    say: "Включаю PRIVATE PERSONS",
+    url: "https://replace-me.invalid/private-persons",
+  },
 });
 
-function sendJson(res, status, payload) {
+function sendJson(response, status, payload) {
   const body = JSON.stringify(payload);
-  res.writeHead(status, {
+  response.writeHead(status, {
     "content-type": "application/json; charset=utf-8",
     "content-length": Buffer.byteLength(body),
   });
-  res.end(body);
+  response.end(body);
 }
 
-function readJson(req) {
+function readJson(request) {
   return new Promise((resolve, reject) => {
-    const chunks = [];
-    let size = 0;
+    let body = "";
 
-    req.on("data", (chunk) => {
-      size += chunk.length;
-      if (size > 1024 * 1024) {
+    request.setEncoding("utf8");
+    request.on("data", (chunk) => {
+      body += chunk;
+      if (body.length > 1024 * 1024) {
         reject(new Error("Request body is too large"));
-        req.destroy();
-        return;
+        request.destroy();
       }
-      chunks.push(chunk);
     });
-
-    req.on("end", () => {
+    request.on("end", () => {
       try {
-        const raw = Buffer.concat(chunks).toString("utf8");
-        resolve(raw ? JSON.parse(raw) : {});
+        resolve(body ? JSON.parse(body) : {});
       } catch (error) {
         reject(error);
       }
     });
-
-    req.on("error", reject);
+    request.on("error", reject);
   });
 }
 
-const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+const server = http.createServer(async (request, response) => {
+  const { pathname } = new URL(
+    request.url,
+    `http://${request.headers.host || "localhost"}`
+  );
 
-  if (req.method === "GET" && url.pathname === "/healthz") {
-    return sendJson(res, 200, { ok: true });
+  if (request.method === "GET" && pathname === "/healthz") {
+    return sendJson(response, 200, { ok: true });
   }
 
-  if (req.method === "GET" && url.pathname === "/") {
-    return sendJson(res, 200, {
-      service: "surprisefm-alice-skill",
-      skills: Object.entries(ROUTES).map(([path, stationId]) => ({
-        path,
-        invocation: STATIONS[stationId].invocation,
-      })),
-    });
+  if (request.method === "GET" && pathname === "/") {
+    return sendJson(
+      response,
+      200,
+      Object.entries(SKILLS).map(([slug, skill]) => ({
+        path: `/skills/${slug}`,
+        say: skill.say,
+        url: skill.url,
+      }))
+    );
   }
 
-  const stationId = ROUTES[url.pathname];
+  const match = pathname.match(/^\/skills\/([^/]+)$/);
+  const slug = match?.[1];
+  const skill = SKILLS[slug];
 
-  if (!stationId) {
-    return sendJson(res, 404, { error: "Not found" });
+  if (!skill) {
+    return sendJson(response, 404, { error: "Skill not found" });
   }
 
-  if (req.method !== "POST") {
-    return sendJson(res, 405, { error: "Method not allowed" });
+  if (request.method !== "POST") {
+    return sendJson(response, 405, { error: "Method not allowed" });
   }
 
   try {
-    const event = await readJson(req);
-    const response = audioResponse(event, stationId);
-    return sendJson(res, 200, response);
+    const event = await readJson(request);
+
+    if (new URL(skill.url).hostname.endsWith(".invalid")) {
+      return sendJson(response, 200, {
+        version: event.version || "1.0",
+        response: {
+          text: "Для этого навыка пока не указана ссылка на аудиопоток.",
+          end_session: true,
+        },
+      });
+    }
+
+    return sendJson(response, 200, {
+      version: event.version || "1.0",
+      response: {
+        text: skill.say,
+        tts: skill.say,
+        end_session: true,
+        directives: {
+          audio_player: {
+            action: "Play",
+            item: {
+              stream: {
+                url: skill.url,
+                token: `${slug}-live`,
+                offset_ms: 0,
+              },
+            },
+          },
+        },
+      },
+    });
   } catch (error) {
     console.error(error);
-    return sendJson(res, 400, { error: "Invalid JSON request" });
+    return sendJson(response, 400, { error: "Invalid JSON request" });
   }
 });
 
-if (require.main === module) {
-  server.listen(PORT, HOST, () => {
-    console.log(`surprisefm-alice-skill listening on http://${HOST}:${PORT}`);
-  });
-}
-
-module.exports = { server, ROUTES };
+server.listen(PORT, HOST, () => {
+  console.log(`Listening on http://${HOST}:${PORT}`);
+});

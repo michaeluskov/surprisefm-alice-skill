@@ -1,12 +1,11 @@
 {
   "name": "surprisefm-alice-skill",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "private": true,
-  "description": "Five experimental Alice radio skills for SURPRISE.FM ecosystem streams",
-  "main": "index.js",
+  "description": "Alice radio skills in a single JavaScript file",
+  "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "test": "node --test"
+    "start": "node server.js"
   },
   "engines": {
     "node": ">=22"

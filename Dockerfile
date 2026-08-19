@@ -1,18 +1,13 @@
 FROM node:22-alpine
 
 WORKDIR /app
-
-COPY package.json ./
-COPY alice.js index.js server.js stations.js ./
-COPY test ./test
-COPY examples ./examples
+COPY --chown=node:node server.js ./
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=3000
 
 EXPOSE 3000
-
 USER node
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
