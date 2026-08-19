@@ -6,23 +6,23 @@ const HOST = process.env.HOST || "0.0.0.0";
 const SKILLS = Object.freeze({
   surprise: {
     say: "Включаю Surprise.fm",
-    url: "https://replace-me.invalid/surprise-fm",
+    url: "https://radio.surprise.fm/listen/surprise/radio.mp3",
   },
   stvol: {
     say: "Включаю STVOL FM",
-    url: "https://replace-me.invalid/stvol-fm",
+    url: "https://listen9.myradio24.com/49669",
   },
   oto: {
     say: "Включаю OTO Radio",
-    url: "https://replace-me.invalid/oto-radio",
+    url: "https://myradio24.org/7859",
   },
   kurs: {
     say: "Включаю KURS Radio",
-    url: "https://replace-me.invalid/kurs-radio",
+    url: "https://myradio24.org/kursradio",
   },
   "private-persons": {
     say: "Включаю PRIVATE PERSONS",
-    url: "https://replace-me.invalid/private-persons",
+    url: "https://myradio24.org/private",
   },
 });
 
