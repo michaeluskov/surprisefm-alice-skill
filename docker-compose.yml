@@ -1,0 +1,7 @@
+services:
+  alice-radio-skills:
+    build: .
+    container_name: surprisefm-alice-skill
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
