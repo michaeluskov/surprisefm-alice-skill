@@ -1,0 +1,22 @@
+{
+  "meta": {
+    "locale": "ru-RU",
+    "timezone": "Europe/Moscow",
+    "interfaces": {
+      "audio_player": {}
+    }
+  },
+  "request": {
+    "command": "",
+    "original_utterance": "",
+    "type": "SimpleUtterance"
+  },
+  "session": {
+    "new": true,
+    "message_id": 0,
+    "session_id": "example-session",
+    "skill_id": "example-skill",
+    "user_id": "example-user"
+  },
+  "version": "1.0"
+}
